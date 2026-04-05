@@ -7,9 +7,11 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 
+import { createClient } from "@supabase/supabase-js";
+
 export default function AdminDashboard() {
   const { isAdmin, loading: roleLoading } = useUserRole();
-  const [activeTab, setActiveTab] = useState<'users' | 'logs'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'logs' | 'new_user'>('users');
   const [users, setUsers] = useState<any[]>([]);
   const [devices, setDevices] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
@@ -53,6 +55,49 @@ export default function AdminDashboard() {
   if (!isAdmin) {
     return <Navigate to="/" replace />;
   }
+
+  const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const email = fd.get('email') as string;
+    const pwd = fd.get('password') as string;
+    const name = fd.get('name') as string;
+    
+    try {
+      // Create transient client to not overwrite the admin session
+      const transient = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, {
+          auth: { persistSession: false, autoRefreshToken: false }
+      });
+
+      toast.loading("Criando usuário...");
+      const { data, error } = await transient.auth.signUp({
+        email,
+        password: pwd,
+        options: { data: { name } }
+      });
+
+    if (error) {
+      toast.error("Erro: " + error.message, { id: 'create_user' });
+      return;
+    }
+
+      if (data.user) {
+        // Force profile to be active for 30 days
+        const newDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        await (supabase as any).from('profiles').update({
+           subscription_status: 'active',
+           subscription_ends_at: newDate.toISOString()
+        }).eq('id', data.user.id);
+        
+        toast.success("Usuário criado e liberado 30 dias!");
+        fetchAdminData();
+        (e.target as HTMLFormElement).reset();
+        setActiveTab('users');
+      }
+    } catch (err: any) {
+      toast.error("Erro na comunicação com servidor: " + err.message);
+    }
+  };
 
   const handleToggleSub = async (userId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
@@ -122,6 +167,12 @@ export default function AdminDashboard() {
             className={`px-4 py-2 font-medium flex items-center gap-2 ${activeTab === 'logs' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground transition-colors'}`}
           >
             <Activity className="w-4 h-4" /> Logs de Acesso
+          </button>
+          <button 
+            onClick={() => setActiveTab('new_user')} 
+            className={`px-4 py-2 font-medium flex items-center gap-2 ${activeTab === 'new_user' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground transition-colors'}`}
+          >
+            <Shield className="w-4 h-4" /> Criar Usuário
           </button>
         </div>
 
@@ -200,7 +251,7 @@ export default function AdminDashboard() {
                 </motion.tbody>
               </table>
             </div>
-          ) : (
+          ) : activeTab === 'logs' ? (
             <div className="bg-card border border-border rounded-xl shadow-lg overflow-hidden max-w-full overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
@@ -239,7 +290,28 @@ export default function AdminDashboard() {
                 </motion.tbody>
               </table>
             </div>
-          )
+          ) : activeTab === 'new_user' ? (
+            <div className="bg-card border border-border rounded-xl shadow-lg p-6 max-w-lg mx-auto">
+              <h2 className="text-xl font-bold mb-4">Cadastrar Novo Cliente</h2>
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Nome Completo</label>
+                  <input name="name" required className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="João Silva" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">E-mail de Acesso</label>
+                  <input type="email" name="email" required className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="joao@email.com" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Senha Provisória</label>
+                  <input type="password" name="password" required minLength={6} className="w-full bg-secondary border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder="******" />
+                </div>
+                <button type="submit" className="w-full bg-primary text-primary-foreground font-medium py-2 rounded-md hover:bg-primary/90 transition-colors mt-2">
+                  Criar Conta (Já Inicia com 30 Dias)
+                </button>
+              </form>
+            </div>
+          ) : null
         )}
 
       </div>

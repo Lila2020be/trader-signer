@@ -3,11 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 export function useUserRole() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
+
     if (!user) {
       setIsAdmin(false);
       setLoading(false);
@@ -24,7 +26,7 @@ export function useUserRole() {
         setIsAdmin(!!data);
         setLoading(false);
       });
-  }, [user?.id]);
+  }, [user?.id, authLoading]);
 
   return { isAdmin, loading };
 }

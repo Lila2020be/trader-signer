@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { toast } from "sonner";
 import { Candle } from "@/lib/indicators";
@@ -27,6 +28,7 @@ const TIMEFRAMES: Timeframe[] = [
 ];
 
 export default function TradingPage() {
+  const navigate = useNavigate();
   const { profile, signOut } = useAuth();
   const { isAdmin } = useUserRole();
   const [asset, setAsset] = useState<Asset>(allAssets[0]);
@@ -389,6 +391,16 @@ export default function TradingPage() {
             >
               {soundEnabled ? <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
             </button>
+            {isAdmin && (
+              <button
+                onClick={() => navigate('/admin')}
+                className="p-1 sm:p-1.5 rounded bg-primary/10 hover:bg-primary/20 transition-colors text-primary flex items-center gap-1 font-bold text-xs border border-primary/20"
+                title="Acessar Painel VIP"
+              >
+                <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Admin</span>
+              </button>
+            )}
             <button
               onClick={signOut}
               className="p-1 sm:p-1.5 rounded hover:bg-destructive/20 transition-colors text-muted-foreground hover:text-destructive"
