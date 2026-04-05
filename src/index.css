@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Pocket Option inspired dark theme */
+    --background: 220 25% 6%;
+    --foreground: 210 15% 88%;
+
+    --card: 220 22% 9%;
+    --card-foreground: 210 15% 88%;
+
+    --popover: 220 22% 9%;
+    --popover-foreground: 210 15% 88%;
+
+    --primary: 152 69% 48%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 18% 13%;
+    --secondary-foreground: 210 15% 80%;
+
+    --muted: 220 16% 16%;
+    --muted-foreground: 215 10% 45%;
+
+    --accent: 45 93% 58%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 16% 13%;
+    --input: 220 16% 13%;
+    --ring: 152 69% 48%;
+
+    --radius: 0.375rem;
+
+    /* Trading specific */
+    --signal-call: 152 69% 48%;
+    --signal-put: 0 72% 55%;
+    --signal-neutral: 45 93% 58%;
+    --chart-bg: 220 28% 5%;
+    --chart-grid: 220 18% 10%;
+    --candle-up: 152 69% 48%;
+    --candle-down: 0 72% 55%;
+    --header-bg: 220 24% 8%;
+    --panel-bg: 220 22% 9%;
+
+    --sidebar-background: 220 25% 6%;
+    --sidebar-foreground: 210 15% 88%;
+    --sidebar-primary: 152 69% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 18% 13%;
+    --sidebar-accent-foreground: 210 15% 80%;
+    --sidebar-border: 220 16% 13%;
+    --sidebar-ring: 152 69% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+  }
+  code, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Custom scrollbar - Pocket Option style */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 2px;
+  }
+}
+
+@layer utilities {
+  .signal-call {
+    color: hsl(var(--signal-call));
+  }
+  .signal-put {
+    color: hsl(var(--signal-put));
+  }
+  .signal-glow-call {
+    filter: drop-shadow(0 0 8px hsl(var(--signal-call) / 0.7));
+  }
+  .signal-glow-put {
+    filter: drop-shadow(0 0 8px hsl(var(--signal-put) / 0.7));
+  }
+  .glass-panel {
+    background: hsl(var(--panel-bg));
+    border: 1px solid hsl(var(--border));
+  }
+  .po-header {
+    background: hsl(var(--header-bg));
+    border-bottom: 1px solid hsl(var(--border));
+  }
+}
