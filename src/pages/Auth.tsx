@@ -62,7 +62,9 @@ export default function Auth() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success("Conta criada! Verifique seu email para confirmar.");
+        toast.success(
+          "Conta criada com sucesso! Verifique seu email para confirmar."
+        );
       }
     }
     setSubmitting(false);
@@ -183,6 +185,19 @@ export default function Auth() {
               </button>
             )}
           </form>
+
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              {isLogin
+                ? "Não tem conta? Criar conta"
+                : "Já tem conta? Fazer login"}
+            </button>
+          </div>
+
         </div>
       </motion.div>
     </div>
