@@ -7,9 +7,11 @@ import { Flame, Mail, Lock, User, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Auth() {
-  const { user, loading, signIn } = useAuth();
+  const { user, loading, signIn, signUp, loginAsGuest } = useAuth();
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   if (loading) {
@@ -44,9 +46,24 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await signIn(email, password);
-    if (error) {
-      toast.error(error.message);
+
+    if (isLogin) {
+      const { error } = await signIn(email, password);
+      if (error) {
+        toast.error(error.message);
+      }
+    } else {
+      if (!name.trim()) {
+        toast.error("Informe seu nome");
+        setSubmitting(false);
+        return;
+      }
+      const { error } = await signUp(email, password, name);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Conta criada! Verifique seu email para confirmar.");
+      }
     }
     setSubmitting(false);
   };
@@ -68,12 +85,46 @@ export default function Auth() {
 
         {/* Card */}
         <div className="bg-card border border-border rounded-xl p-6 shadow-lg">
-          <div className="mb-6 text-center">
-            <h2 className="text-xl font-bold text-foreground">Acesso ao App</h2>
-            <p className="text-sm text-muted-foreground mt-1">Apenas usuários autorizados</p>
+          {/* Tabs */}
+          <div className="flex mb-6 bg-secondary rounded-lg p-1">
+            <button
+              type="button"
+              onClick={() => setIsLogin(true)}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+                isLogin
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Entrar
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsLogin(false)}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+                !isLogin
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Cadastrar
+            </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Seu nome"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-secondary border border-border rounded-lg pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            )}
+
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -105,16 +156,32 @@ export default function Auth() {
               className="w-full bg-primary text-primary-foreground font-medium py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              Entrar
+              {isLogin ? "Entrar" : "Criar Conta"}
             </button>
+
+            <div className="relative flex py-2 items-center">
+              <div className="flex-grow border-t border-border"></div>
+              <span className="flex-shrink mx-4 text-muted-foreground text-xs uppercase">Ou</span>
+              <div className="flex-grow border-t border-border"></div>
+            </div>
 
             <button
               type="button"
-              onClick={handleForgotPassword}
-              className="w-full text-sm text-muted-foreground hover:text-primary transition-colors"
+              onClick={loginAsGuest}
+              className="w-full bg-secondary border border-border text-foreground font-medium py-3 rounded-lg hover:bg-muted transition-colors flex items-center justify-center gap-2"
             >
-              Esqueceu sua senha?
+              Acesso Rápido (Convidado)
             </button>
+
+            {isLogin && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="w-full text-sm text-muted-foreground hover:text-primary transition-colors pt-2"
+              >
+                Esqueceu sua senha?
+              </button>
+            )}
           </form>
         </div>
       </motion.div>

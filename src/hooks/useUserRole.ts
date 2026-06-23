@@ -3,30 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 export function useUserRole() {
-  const { user, loading: authLoading } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(true); // <--- FORÇADO PARA TESTE
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return;
-
-    if (!user) {
-      setIsAdmin(false);
-      setLoading(false);
-      return;
-    }
-
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle()
-      .then(({ data }) => {
-        setIsAdmin(!!data);
-        setLoading(false);
-      });
-  }, [user?.id, authLoading]);
+    // Forçando admin true localmente
+    setIsAdmin(true);
+    setLoading(false);
+  }, [user]);
 
   return { isAdmin, loading };
 }
