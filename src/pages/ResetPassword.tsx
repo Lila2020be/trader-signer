@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Flame, Lock, Loader2 } from "lucide-react";
+import { Flame, Lock, Loader2, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function ResetPassword() {
@@ -11,21 +11,58 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [ready, setReady] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    // Listen for the PASSWORD_RECOVERY event
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
+    let timer: ReturnType<typeof setTimeout>;
+    let errorTimer: ReturnType<typeof setTimeout>;
+
+    // Detect if we have an access token in the URL hash or query params
+    const urlString = window.location.href;
+    const hasAccessToken = urlString.includes("access_token") || window.location.hash.includes("access_token");
+
+    if (hasAccessToken) {
+      // Fallback to show the form if the event is delayed
+      timer = setTimeout(() => {
         setReady(true);
+      }, 1200);
+    } else {
+      // If there's no access token, check if there is an active session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          setReady(true);
+        } else {
+          setErrorMsg("Link de recuperação inválido ou expirado. Por favor, solicite um novo e-mail.");
+        }
+      });
+    }
+
+    // Listen to authentication state changes (PASSWORD_RECOVERY or SIGNED_IN)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        setReady(true);
+        setErrorMsg(null);
+        if (timer) clearTimeout(timer);
+        if (errorTimer) clearTimeout(errorTimer);
       }
     });
 
-    // Also check if we already have a session (user clicked the link)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
+    // Show error if we had a token but no session was set after 6 seconds
+    if (hasAccessToken) {
+      errorTimer = setTimeout(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session) {
+            setErrorMsg("Não foi possível validar o link de recuperação. O link pode ter expirado ou é inválido. Solicite um novo link.");
+          }
+        });
+      }, 6000);
+    }
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (timer) clearTimeout(timer);
+      if (errorTimer) clearTimeout(errorTimer);
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,15 +85,56 @@ export default function ResetPassword() {
       toast.error(error.message);
     } else {
       toast.success("Senha atualizada com sucesso!");
-      navigate("/");
+      // Force sign out to require signing in with new password
+      await supabase.auth.signOut();
+      localStorage.removeItem("mock_user");
+      navigate("/auth");
     }
     setSubmitting(false);
   };
 
+  if (errorMsg) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <Flame className="w-8 h-8 text-primary" />
+            <span className="font-bold text-2xl text-foreground">
+              Trading<span className="text-primary">Signals</span>
+            </span>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl p-6 shadow-lg text-center">
+            <div className="w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto mb-4 border border-destructive/20">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground mb-2">Erro de Recuperação</h2>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              {errorMsg}
+            </p>
+            <button
+              onClick={() => navigate("/auth")}
+              className="w-full bg-primary text-primary-foreground font-medium py-3 rounded-lg hover:opacity-90 transition-opacity"
+            >
+              Voltar ao Login
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!ready) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <span className="text-sm text-muted-foreground animate-pulse">Validando token de acesso...</span>
+        </div>
       </div>
     );
   }
@@ -78,7 +156,7 @@ export default function ResetPassword() {
         <div className="bg-card border border-border rounded-xl p-6 shadow-lg">
           <h2 className="text-lg font-semibold text-foreground mb-2">Nova Senha</h2>
           <p className="text-sm text-muted-foreground mb-6">
-            Digite sua nova senha abaixo.
+            Digite sua nova senha abaixo para redefinir o acesso à sua conta.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
